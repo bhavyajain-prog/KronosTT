@@ -6,77 +6,129 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class MultipleSchedulesAlgoTest {
 
+    // --- TEST VOLUME DIALS ---
+    private static final int WORK_DAYS = 5;
+    private static final int MAX_SLOTS = 8; // Total 40 slots per week
+
+    private static final int NUM_ROOMS = 10;
+    private static final int NUM_SUBJECTS = 20;
+    private static final int NUM_TEACHERS = 20;
+    private static final int NUM_BATCHES = 10;
+    private static final int SUBJECTS_PER_BATCH = 6;
+
     @Test
-    void generateTimeTable() {
-        // 1. Define schedule bounds (5 days, 8 slots = 40 total slots per room/teacher)
-        int maxSlots = 8;
-        int workDays = 5;
+    void testLargeScaleTimeTableGeneration() {
+        // 1. Generate Programmatic Data
+        List<Room> rooms = generateRooms(NUM_ROOMS);
+        List<Subject> subjects = generateSubjects(NUM_SUBJECTS);
+        List<Teacher> teachers = generateTeachers(NUM_TEACHERS, subjects);
+        List<Batch> batches = generateBatches(NUM_BATCHES, subjects);
 
-        // 2. Load mock data
-        List<Room> rooms = dummyRooms();
-        List<Teacher> teachers = dummyTeachers();
-        List<Batch> batches = dummyBatches();
-
-        // 3. Pre-process: Unpack batches and subjects into a flat List of Sessions
+        // 2. Pre-process into Sessions
         List<Session> allSessions = buildMockSessions(batches, teachers);
 
-        // 4. Initialize and Run Algorithm
-        MultipleSchedulesAlgo algo = new MultipleSchedulesAlgo(allSessions, rooms, workDays, maxSlots);
+        // 3. Initialize Engine
+        MultipleSchedulesAlgo algo = new MultipleSchedulesAlgo(allSessions, rooms, WORK_DAYS, MAX_SLOTS);
         ScheduledResult result = algo.generateTimeTable();
 
-        // 5. Output Results for Debugging
-        System.out.println("--- TIMETABLE GENERATION RESULTS ---");
-        System.out.println("Total Sessions to Schedule: " + allSessions.size());
-        System.out.println("Successfully Placed: " + result.getSessions().size());
-        System.out.println("Unplaced Sessions: " + result.getUnscheduledSessions().size());
+        // 4. Output Statistics
+        System.out.println("=== STRESS TEST RESULTS ===");
+        System.out.println("Total Rooms: " + rooms.size());
+        System.out.println("Total Teachers: " + teachers.size());
+        System.out.println("Total Batches: " + batches.size());
+        System.out.println("---------------------------");
+        System.out.println("Total Sessions Generated: " + allSessions.size());
+        System.out.println("Sessions Successfully Placed: " + result.getSessions().size());
+        System.out.println("Sessions Failed (Unplaced): " + result.getUnscheduledSessions().size());
 
-        // 6. Assertions
-        assertNotNull(result, "Result should not be null");
-        assertTrue(result.getUnscheduledSessions().isEmpty(), "There should be 0 unplaced sessions with ample rooms/slots");
-        assertEquals(allSessions.size(), result.getSessions().size(), "All sessions must be successfully scheduled");
-    }
-
-    // --- MOCK DATA GENERATORS ---
-
-    private List<Room> dummyRooms() {
-        return new ArrayList<>(List.of(
-                Room.builder().id(101L).name("Room 101").capacity(60).build(),
-                Room.builder().id(102L).name("Room 102").capacity(60).build()
-        ));
-    }
-
-    private List<Subject> dummySubjects() {
-        return new ArrayList<>(List.of(
-                Subject.builder().id(1L).name("Mathematics").weight(3).slotDuration(1).build(),
-                Subject.builder().id(2L).name("Physics").weight(2).slotDuration(1).build(),
-                Subject.builder().id(3L).name("Chemistry").weight(2).slotDuration(1).build(),
-                Subject.builder().id(4L).name("Computer Science").weight(3).slotDuration(1).build(),
-                Subject.builder().id(7L).name("Data Structures Lab").weight(2).slotDuration(2).build()
-        ));
-    }
-
-    private List<Teacher> dummyTeachers() {
-        List<Subject> subjects = dummySubjects();
-        return List.of(
-                // Note: Anil teaches Math, Sneha teaches CS. They will be heavily contested!
-                Teacher.builder().id(1L).firstName("Anil").lastName("Sharma").subjects(List.of(subjects.get(0))).build(),
-                Teacher.builder().id(2L).firstName("Priya").lastName("Mehta").subjects(List.of(subjects.get(1))).build(),
-                Teacher.builder().id(3L).firstName("Rohan").lastName("Verma").subjects(List.of(subjects.get(2))).build(),
-                Teacher.builder().id(4L).firstName("Sneha").lastName("Joshi").subjects(List.of(subjects.get(3))).build(),
-                Teacher.builder().id(7L).firstName("Deepak").lastName("Rajput").subjects(List.of(subjects.get(4))).build()
+        // Let's print out the first 5 scheduled sessions just to see the data mapping
+        System.out.println("---------------------------");
+        System.out.println("Sample Placements:");
+        result.getSessions().stream().limit(5).forEach(s ->
+                System.out.printf("Batch: %s | %s | %s | %s | Day: %s, Slot: %d%n",
+                        s.getSession().getBatch().getName(),
+                        s.getSession().getSubject().getName(),
+                        s.getSession().getTeacher().getFirstName(),
+                        s.getAssignedRoom().getName(),
+                        s.getWeekDay(),
+                        s.getStartSlot()
+                )
         );
+
+        // 5. Assertions
+        assertNotNull(result);
+        assertEquals(0, result.getUnscheduledSessions().size(),
+                "The algorithm failed to place " + result.getUnscheduledSessions().size() + " sessions.");
+        assertEquals(allSessions.size(), result.getSessions().size());
     }
 
-    private List<Batch> dummyBatches() {
-        List<Subject> allSubjects = dummySubjects();
-        return new ArrayList<>(List.of(
-                Batch.builder().id(1L).name("CSE 2025").section("A").strength(40).subjects(allSubjects).build(),
-                Batch.builder().id(2L).name("CSE 2025").section("B").strength(42).subjects(allSubjects).build()
-        ));
+    // --- PROGRAMMATIC DATA GENERATORS ---
+
+    private List<Room> generateRooms(int count) {
+        List<Room> rooms = new ArrayList<>();
+        for (long i = 0; i < count; i++) {
+            rooms.add(Room.builder()
+                    .id(i)
+                    .name("Room_" + i)
+                    .capacity(100) // Huge capacity so we only test time/teacher collisions, not capacity limits right now
+                    .build());
+        }
+        return rooms;
+    }
+
+    private List<Subject> generateSubjects(int count) {
+        List<Subject> subjects = new ArrayList<>();
+        for (long i = 0; i < count; i++) {
+            boolean isLab = (i % 4 == 0); // Every 4th subject is a lab
+            subjects.add(Subject.builder()
+                    .id(i)
+                    .name("Sub_" + i + (isLab ? "_LAB" : "_LEC"))
+                    .weight(isLab ? 2 : 3)        // Labs happen 2 times a week, Lectures 3 times
+                    .slotDuration(isLab ? 2 : 1)  // Labs take 2 hours, Lectures 1 hour
+                    .build());
+        }
+        return subjects;
+    }
+
+    private List<Teacher> generateTeachers(int count, List<Subject> subjects) {
+        List<Teacher> teachers = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            // ith Teacher teaches ith Subject strictly
+            Subject assignedSubject = subjects.get(i % subjects.size());
+            teachers.add(Teacher.builder()
+                    .id(i)
+                    .firstName("Teach_" + i)
+                    .lastName("")
+                    .subjects(List.of(assignedSubject))
+                    .build());
+        }
+        return teachers;
+    }
+
+    private List<Batch> generateBatches(int count, List<Subject> allSubjects) {
+        List<Batch> batches = new ArrayList<>();
+        for (long i = 0; i < count; i++) {
+            List<Subject> batchSubjects = new ArrayList<>();
+            // Sliding window assignment: Batch 0 gets Sub 0-5, Batch 1 gets Sub 1-6, etc.
+            // This creates heavy competition for specific teachers.
+            for (int j = 0; j < SUBJECTS_PER_BATCH; j++) {
+                int subjectIndex = (int) ((i + j) % allSubjects.size());
+                batchSubjects.add(allSubjects.get(subjectIndex));
+            }
+
+            batches.add(Batch.builder()
+                    .id(i)
+                    .name("Batch_" + i)
+                    .strength(60)
+                    .subjects(batchSubjects)
+                    .build());
+        }
+        return batches;
     }
 
     // --- PRE-PROCESSOR MOCK ---
@@ -88,13 +140,11 @@ class MultipleSchedulesAlgoTest {
         for (Batch batch : batches) {
             for (Subject subject : batch.getSubjects()) {
 
-                // Find the teacher who teaches this subject
                 Teacher assignedTeacher = teachers.stream()
                         .filter(t -> t.getSubjects().stream().anyMatch(s -> s.getId() == subject.getId()))
                         .findFirst()
                         .orElseThrow(() -> new RuntimeException("No teacher found for " + subject.getName()));
 
-                // Create individual sessions based on the subject's weight
                 for (int i = 0; i < subject.getWeight(); i++) {
                     allSessions.add(Session.builder()
                             .id(sessionIdCounter++)
