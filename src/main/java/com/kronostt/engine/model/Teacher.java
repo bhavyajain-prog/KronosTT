@@ -13,5 +13,4 @@ public class Teacher {
     private String lastName;
     private String email;
     private List<Subject> subjects;
-    private List<Batch> batches;
 }

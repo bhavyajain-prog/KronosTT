@@ -9,12 +9,10 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-class MultipleSchedulesAlgoTest {
-
-    // --- TEST VOLUME DIALS ---
+class HeuristicPlacementAlgoTest {
+    // Test volume
     private static final int WORK_DAYS = 6;
-    private static final int MAX_SLOTS = 8; // Total 40 slots per week
-
+    private static final int MAX_SLOTS = 8;
     private static final int NUM_ROOMS = 63;
     private static final int NUM_SUBJECTS = 15;
     private static final int NUM_TEACHERS = 102;
@@ -24,16 +22,16 @@ class MultipleSchedulesAlgoTest {
     @Test
     void testLargeScaleTimeTableGeneration() {
         // 1. Generate Programmatic Data
-        List<Room> rooms = generateRooms(NUM_ROOMS);
-        List<Subject> subjects = generateSubjects(NUM_SUBJECTS);
-        List<Teacher> teachers = generateTeachers(NUM_TEACHERS, subjects);
-        List<Batch> batches = generateBatches(NUM_BATCHES, subjects);
+        List<Room> rooms = generateRooms();
+        List<Subject> subjects = generateSubjects();
+        List<Teacher> teachers = generateTeachers(subjects);
+        List<Batch> batches = generateBatches(subjects);
 
         // 2. Pre-process into Sessions
         List<Session> allSessions = buildMockSessions(batches, teachers);
 
         // 3. Initialize Engine
-        MultipleSchedulesAlgo algo = new MultipleSchedulesAlgo(allSessions, rooms, WORK_DAYS, MAX_SLOTS);
+        HeuristicPlacementAlgo algo = new HeuristicPlacementAlgo(allSessions, rooms, WORK_DAYS, MAX_SLOTS, MAX_SLOTS / 2 - 1);
         ScheduledResult result = algo.generateTimeTable();
 
         // 4. Output Statistics
@@ -69,9 +67,9 @@ class MultipleSchedulesAlgoTest {
 
     // --- PROGRAMMATIC DATA GENERATORS ---
 
-    private List<Room> generateRooms(int count) {
+    private List<Room> generateRooms() {
         List<Room> rooms = new ArrayList<>();
-        for (long i = 0; i < count; i++) {
+        for (long i = 0; i < HeuristicPlacementAlgoTest.NUM_ROOMS; i++) {
             rooms.add(Room.builder()
                     .id(i)
                     .name("Room_" + i)
@@ -81,9 +79,9 @@ class MultipleSchedulesAlgoTest {
         return rooms;
     }
 
-    private List<Subject> generateSubjects(int count) {
+    private List<Subject> generateSubjects() {
         List<Subject> subjects = new ArrayList<>();
-        for (long i = 0; i < count; i++) {
+        for (long i = 0; i < HeuristicPlacementAlgoTest.NUM_SUBJECTS; i++) {
             boolean isLab = (i % 4 == 0); // Every 4th subject is a lab
             subjects.add(Subject.builder()
                     .id(i)
@@ -95,9 +93,9 @@ class MultipleSchedulesAlgoTest {
         return subjects;
     }
 
-    private List<Teacher> generateTeachers(int count, List<Subject> subjects) {
+    private List<Teacher> generateTeachers(List<Subject> subjects) {
         List<Teacher> teachers = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < HeuristicPlacementAlgoTest.NUM_TEACHERS; i++) {
             // ith Teacher teaches ith Subject strictly
             Subject assignedSubject = subjects.get(i % subjects.size());
             teachers.add(Teacher.builder()
@@ -110,9 +108,9 @@ class MultipleSchedulesAlgoTest {
         return teachers;
     }
 
-    private List<Batch> generateBatches(int count, List<Subject> allSubjects) {
+    private List<Batch> generateBatches(List<Subject> allSubjects) {
         List<Batch> batches = new ArrayList<>();
-        for (long i = 0; i < count; i++) {
+        for (long i = 0; i < HeuristicPlacementAlgoTest.NUM_BATCHES; i++) {
             List<Subject> batchSubjects = new ArrayList<>();
             // Sliding window assignment: Batch 0 gets Sub 0-5, Batch 1 gets Sub 1-6, etc.
             // This creates heavy competition for specific teachers.
