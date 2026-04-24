@@ -8,7 +8,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * BaseAlgo is non-optimized, non-constrained, simple Algorithm which uses randomization as base to make a scheduled timetable
+ * BaseAlgo is non-optimized, non-constrained, simple Algorithm which uses
+ * randomization as base to make a scheduled timetable.
  */
 public class BaseAlgo implements Algo {
 

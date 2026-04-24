@@ -31,7 +31,7 @@ class ConstraintPropagationAlgoTest {
         List<Session> allSessions = buildMockSessions(batches, teachers);
 
         // 3. Initialize Engine with ConstraintPropagationAlgo
-        ConstraintPropagationAlgo algo = new ConstraintPropagationAlgo(allSessions, rooms, WORK_DAYS, MAX_SLOTS, MAX_SLOTS / 2 - 1);
+        ConstraintPropagationAlgo algo = new ConstraintPropagationAlgo(allSessions, null, rooms, WORK_DAYS, MAX_SLOTS, MAX_SLOTS / 2 - 1, null);
         ScheduledResult result = algo.generateTimeTable();
 
         // 4. Output Statistics

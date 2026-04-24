@@ -31,7 +31,7 @@ class HeuristicPlacementAlgoTest {
         List<Session> allSessions = buildMockSessions(batches, teachers);
 
         // 3. Initialize Engine
-        HeuristicPlacementAlgo algo = new HeuristicPlacementAlgo(allSessions, rooms, WORK_DAYS, MAX_SLOTS, MAX_SLOTS / 2 - 1);
+        HeuristicPlacementAlgo algo = new HeuristicPlacementAlgo(allSessions, null, rooms, WORK_DAYS, MAX_SLOTS, MAX_SLOTS / 2 - 1, null);
         ScheduledResult result = algo.generateTimeTable();
 
         // 4. Output Statistics

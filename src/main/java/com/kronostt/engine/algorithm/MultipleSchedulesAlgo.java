@@ -13,8 +13,8 @@ public class MultipleSchedulesAlgo extends AbstractPlacementAlgo {
     private final TimeTableState state;
     private final List<int[]> searchSpace;
 
-    public MultipleSchedulesAlgo(List<Session> sessions, List<Room> availableRooms, int workDays, int slotsPerDay) {
-        super(sessions);
+    public MultipleSchedulesAlgo(List<Session> sessions, List<ScheduledSession> lockedSessions, List<Room> availableRooms, int workDays, int slotsPerDay) {
+        super(sessions, lockedSessions);
         this.availableRooms = availableRooms;
         this.availableRooms.sort(Comparator.comparing(Room::getCapacity));
         this.state = new TimeTableState(workDays, slotsPerDay, slotsPerDay / 2);

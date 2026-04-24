@@ -3,11 +3,7 @@ package com.kronostt.engine.algorithm;
 import com.kronostt.engine.model.*;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -83,7 +79,7 @@ class ConstraintPropagationAlgoFullLoadTest {
         // 3. Run Algorithm
         long startTime = System.currentTimeMillis();
         ConstraintPropagationAlgo algo = new ConstraintPropagationAlgo(
-                allSessions, rooms, WORK_DAYS, MAX_SLOTS, LUNCH_SLOT);
+                allSessions, null, rooms, WORK_DAYS, MAX_SLOTS, LUNCH_SLOT, null);
         ScheduledResult result = algo.generateTimeTable();
         long endTime = System.currentTimeMillis();
 
@@ -106,12 +102,12 @@ class ConstraintPropagationAlgoFullLoadTest {
         assertNotNull(result);
         assertEquals(0, unplaced,
                 "Expected 100% placement but " + unplaced + " sessions could not be scheduled. " +
-                "This indicates the data may have impossible constraints or the algorithm needs tuning.");
+                        "This indicates the data may have impossible constraints or the algorithm needs tuning.");
         assertEquals(allSessions.size(), placed);
     }
 
     private void printDistributionAnalysis(ScheduledResult result, List<Batch> batches,
-                                          List<Teacher> teachers, List<Room> rooms) {
+                                           List<Teacher> teachers, List<Room> rooms) {
         System.out.println("DISTRIBUTION ANALYSIS:");
 
         // By day
@@ -119,7 +115,7 @@ class ConstraintPropagationAlgoFullLoadTest {
                 .collect(Collectors.groupingBy(s -> s.getWeekDay().name(), Collectors.counting()));
         System.out.println("  Sessions by Day:");
         byDay.forEach((day, count) ->
-            System.out.printf("    %s: %d sessions%n", day, count));
+                System.out.printf("    %s: %d sessions%n", day, count));
 
         // Room utilization
         Map<Long, Long> roomUsage = result.getSessions().stream()

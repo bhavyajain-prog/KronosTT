@@ -6,7 +6,8 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class HeuristicPlacementAlgoFullyLoadedTest {
     // Time structure: 6 days, 8 slots per day, lunch at slot 3
@@ -65,7 +66,7 @@ class HeuristicPlacementAlgoFullyLoadedTest {
         // 3. Run Algorithm
         long startTime = System.currentTimeMillis();
         HeuristicPlacementAlgo algo = new HeuristicPlacementAlgo(
-                allSessions, rooms, WORK_DAYS, MAX_SLOTS, LUNCH_SLOT);
+                allSessions, null, rooms, WORK_DAYS, MAX_SLOTS, LUNCH_SLOT, null);
         ScheduledResult result = algo.generateTimeTable();
         long endTime = System.currentTimeMillis();
 

@@ -9,9 +9,11 @@ import java.util.List;
 
 public abstract class AbstractPlacementAlgo implements Algo {
     protected final List<Session> sessions;
+    protected final List<ScheduledSession> lockedSessions;
 
-    public AbstractPlacementAlgo(List<Session> sessions) {
+    public AbstractPlacementAlgo(List<Session> sessions, List<ScheduledSession> lockedSessions) {
         this.sessions = sessions;
+        this.lockedSessions = lockedSessions;
     }
 
     @Override

@@ -10,8 +10,10 @@ import java.util.List;
 import java.util.Map;
 
 public class TimeTableState {
-    @Getter private final int workDays;
-    @Getter private final int maxSlots;
+    @Getter
+    private final int workDays;
+    @Getter
+    private final int maxSlots;
     private final int LUNCH_START;
 
     private final Map<Long, Session[][]> teacherSchedules = new HashMap<>();
@@ -42,10 +44,10 @@ public class TimeTableState {
         Session[][] bGrid = batchSchedules.getOrDefault(session.getBatch().getId(), getEmptyGrid());
         Session[][] rGrid = roomSchedules.getOrDefault(room.getId(), getEmptyGrid());
 
-        // 1. Constraints (Future)
-        if (constraints != null) {
-            for (Constraint c : constraints) {
-                // score += c.getScore(...);
+        // 1. Constraints
+        if (constraints != null && !constraints.isEmpty()) {
+            for (Constraint constraint : constraints) {
+                score += constraint.evaluate(session, room, day, start, this);
             }
         }
 
@@ -148,13 +150,9 @@ public class TimeTableState {
         return score;
     }
 
-    public int getHeuristicScore(Session session, Room room, int day, int start) {
-        return getHeuristicScore(session, room, day, start, null);
-    }
-
     public boolean canPlace(Session session, Room room, int day, int start) {
         int duration = session.getSlotDuration();
-        if (start + duration> maxSlots) return false;
+        if (start + duration > maxSlots) return false;
         // The Golden Lunch Check
         int lastSlot = start + duration - 1;
         if (start <= LUNCH_START && lastSlot >= LUNCH_START) return false;
@@ -164,9 +162,7 @@ public class TimeTableState {
         Session[][] roomBoard = roomSchedules.getOrDefault(room.getId(), getEmptyGrid());
 
         for (int i = 0; i < duration; i++) {
-            if (teacherBoard[day][start + i] != null ||
-                    batchBoard[day][start + i] != null ||
-                    roomBoard[day][start + i] != null)
+            if (teacherBoard[day][start + i] != null || batchBoard[day][start + i] != null || roomBoard[day][start + i] != null)
                 return false;
         }
         return true;
@@ -182,5 +178,23 @@ public class TimeTableState {
             batchBoard[day][start + i] = session;
             roomBoard[day][start + i] = session;
         }
+    }
+
+    public int getTeacherHoursOnDay(long teacherId, int day) {
+        Session[][] grid = teacherSchedules.get(teacherId);
+        if (grid == null) return 0;
+
+        int hours = 0;
+        for (int s = 0; s < maxSlots; s++) {
+            if (grid[day][s] != null) hours++;
+        }
+        return hours;
+    }
+
+    public Session getBatchSession(long batchId, int day, int slot) {
+        if (day >= workDays || slot >= maxSlots) return null;
+        if (!batchSchedules.containsKey(batchId))
+            return null; // TODO: throw new ResourceNotFoundException("Batch", batchId);
+        return batchSchedules.get(batchId)[day][slot];
     }
 }

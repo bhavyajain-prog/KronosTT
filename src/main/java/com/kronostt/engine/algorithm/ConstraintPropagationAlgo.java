@@ -18,57 +18,30 @@ import java.util.*;
  * Supports dynamic constraint evaluation for future extensibility.
  */
 public class ConstraintPropagationAlgo extends AbstractPlacementAlgo {
+    // Configuration
+    private static final int LCV_SAMPLE_LIMIT = 50;
     private final TimeTableState state;
     private final List<Room> rooms;
     private final int weekDays;
     private final int maxSlots;
     private final int lunchStart;
     private final List<Constraint> constraints;
-
     // Track placed sessions for conflict detection
     private final List<PlacedSession> placedSessions = new ArrayList<>();
     private final Set<Long> placedSessionIds = new HashSet<>();
 
-    // Configuration
-    private static final int LCV_SAMPLE_LIMIT = 50;
+    public ConstraintPropagationAlgo(List<Session> sessions, List<ScheduledSession> lockedSessions, List<Room> rooms, int weekDays, int maxSlots, int lunchStart, List<Constraint> constraints) {
 
-    /**
-     * Represents a valid (day, slot, room) combination
-     */
-    private record TimeSlot(int day, int startSlot, Room room) {
-    }
+        super(sessions, lockedSessions != null ? lockedSessions : new ArrayList<>());
 
-    /**
-     * Represents a placed session for conflict detection
-     */
-    private static class PlacedSession {
-        final Session session;
-        final Room room;
-        final int day;
-        final int startSlot;
-
-        PlacedSession(Session session, Room room, int day, int startSlot) {
-            this.session = session;
-            this.room = room;
-            this.day = day;
-            this.startSlot = startSlot;
-        }
-    }
-
-    public ConstraintPropagationAlgo(List<Session> sessions, List<Room> rooms,
-                                     int weekDays, int maxSlots, int lunchStart) {
-        this(sessions, rooms, weekDays, maxSlots, lunchStart, Collections.emptyList());
-    }
-
-    public ConstraintPropagationAlgo(List<Session> sessions, List<Room> rooms,
-                                     int weekDays, int maxSlots, int lunchStart,
-                                     List<Constraint> constraints) {
-        super(sessions);
         this.rooms = rooms;
         this.weekDays = weekDays;
         this.maxSlots = maxSlots;
         this.lunchStart = lunchStart;
-        this.constraints = constraints != null ? constraints : Collections.emptyList();
+
+        // Default constraints to empty list if null
+        this.constraints = constraints != null ? constraints : new ArrayList<>();
+
         this.state = new TimeTableState(weekDays, maxSlots, lunchStart);
     }
 
@@ -115,19 +88,14 @@ public class ConstraintPropagationAlgo extends AbstractPlacementAlgo {
             // 5. Batch taking fewer unique subjects
             double batchFlexScore = 20.0 / batchSubjectCount.getOrDefault(batchId, 1);
 
-            double totalScore = durationScore + teacherLoadScore + batchLoadScore
-                    + teacherFlexScore + batchFlexScore;
+            double totalScore = durationScore + teacherLoadScore + batchLoadScore + teacherFlexScore + batchFlexScore;
 
             constraintScore.put(session, totalScore);
         }
 
         // Sort by constraint score DESC (most constrained first)
         // Then by slotDuration DESC (longer sessions first)
-        sessions.sort(Comparator
-                .comparingDouble((Session s) -> constraintScore.getOrDefault(s, 0.0)).reversed()
-                .thenComparingInt(Session::getSlotDuration).reversed()
-                .thenComparingLong(s -> s.getTeacher().getId())
-                .thenComparingLong(s -> s.getBatch().getId()));
+        sessions.sort(Comparator.comparingDouble((Session s) -> constraintScore.getOrDefault(s, 0.0)).reversed().thenComparingInt(Session::getSlotDuration).reversed().thenComparingLong(s -> s.getTeacher().getId()).thenComparingLong(s -> s.getBatch().getId()));
     }
 
     @Override
@@ -162,9 +130,7 @@ public class ConstraintPropagationAlgo extends AbstractPlacementAlgo {
         int duration = session.getSlotDuration();
 
         // Pre-filter rooms by capacity
-        List<Room> eligibleRooms = rooms.stream()
-                .filter(r -> r.getCapacity() >= session.getBatch().getStrength())
-                .toList();
+        List<Room> eligibleRooms = rooms.stream().filter(r -> r.getCapacity() >= session.getBatch().getStrength()).toList();
 
         for (int day = 0; day < weekDays; day++) {
             // Slots must fit within day considering duration
@@ -235,10 +201,7 @@ public class ConstraintPropagationAlgo extends AbstractPlacementAlgo {
         if (validSlots.size() == 1) return validSlots.getFirst();
 
         // Get unplaced sessions (sessions not yet in placedSessions)
-        List<Session> unplaced = sessions.stream()
-                .filter(s -> !placedSessionIds.contains(s.getId()))
-                .filter(s -> s != session)
-                .toList();
+        List<Session> unplaced = sessions.stream().filter(s -> !placedSessionIds.contains(s.getId())).filter(s -> s != session).toList();
 
         TimeSlot bestSlot = null;
         double bestScore = Double.NEGATIVE_INFINITY;
@@ -252,8 +215,7 @@ public class ConstraintPropagationAlgo extends AbstractPlacementAlgo {
             double score = -calculateConstraintImpact(session, slot, unplaced);
 
             // Bonus for preferred room
-            if (session.getPreferredRoom() != null &&
-                    slot.room.getId() == session.getPreferredRoom().getId()) {
+            if (session.getPreferredRoom() != null && slot.room.getId() == session.getPreferredRoom().getId()) {
                 score += 100;
             }
 
@@ -263,8 +225,7 @@ public class ConstraintPropagationAlgo extends AbstractPlacementAlgo {
 
             // Bonus for morning slots for heavy subjects, afternoon for light
             int midPoint = maxSlots / 2;
-            boolean isHeavy = session.getSlotDuration() >= 2 ||
-                    (session.getSubject() != null && session.getSubject().getWeight() >= 3);
+            boolean isHeavy = session.getSlotDuration() >= 2 || (session.getSubject() != null && session.getSubject().getWeight() >= 3);
             if (isHeavy && slot.startSlot < midPoint) {
                 score += 5; // Prefer morning for heavy subjects
             } else if (!isHeavy && slot.startSlot >= midPoint) {
@@ -322,12 +283,10 @@ public class ConstraintPropagationAlgo extends AbstractPlacementAlgo {
 
             if (!sameTeacher && !sameBatch) {
                 // Check room conflict
-                if (other.getPreferredRoom() != null &&
-                        slot.room.getId() == other.getPreferredRoom().getId()) {
-                    // Potential room conflict
-                } else {
-                    continue; // No potential conflict
+                if (other.getPreferredRoom() == null || slot.room.getId() != other.getPreferredRoom().getId()) {
+                    continue;
                 }
+                // Potential room conflict
             }
 
             // Count estimated conflicting slots
@@ -353,19 +312,25 @@ public class ConstraintPropagationAlgo extends AbstractPlacementAlgo {
     /**
      * Execute placement and track it
      */
-    private void executePlacement(Session session, Room room, int day, int start,
-                                  List<ScheduledSession> scheduledSessions) {
+    private void executePlacement(Session session, Room room, int day, int start, List<ScheduledSession> scheduledSessions) {
         state.placeSession(session, room, day, start, session.getSlotDuration());
 
         PlacedSession placed = new PlacedSession(session, room, day, start);
         placedSessions.add(placed);
         placedSessionIds.add(session.getId());
 
-        scheduledSessions.add(ScheduledSession.builder()
-                .session(session)
-                .startSlot(start)
-                .weekDay(WeekDay.values()[day])
-                .assignedRoom(room)
-                .build());
+        scheduledSessions.add(ScheduledSession.builder().session(session).startSlot(start).weekDay(WeekDay.values()[day]).assignedRoom(room).build());
+    }
+
+    /**
+     * Represents a valid (day, slot, room) combination
+     */
+    private record TimeSlot(int day, int startSlot, Room room) {
+    }
+
+    /**
+     * Represents a placed session for conflict detection
+     */
+    private record PlacedSession(Session session, Room room, int day, int startSlot) {
     }
 }

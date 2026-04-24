@@ -33,7 +33,7 @@ class MultipleSchedulesAlgoTest {
         List<Session> allSessions = buildMockSessions(batches, teachers);
 
         // 3. Initialize Engine
-        MultipleSchedulesAlgo algo = new MultipleSchedulesAlgo(allSessions, rooms, WORK_DAYS, MAX_SLOTS);
+        MultipleSchedulesAlgo algo = new MultipleSchedulesAlgo(allSessions, new ArrayList<>(), rooms, WORK_DAYS, MAX_SLOTS);
         ScheduledResult result = algo.generateTimeTable();
 
         // 4. Output Statistics
