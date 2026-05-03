@@ -1,12 +1,15 @@
 # Maven
 /target/
+.m2/
 
 # IDEs
 .idea/
+.vscode/
+.agent/
+.claude/
 *.iml
 *.ipr
 *.iws
-.vscode/
 
 # Eclipse
 .classpath
@@ -20,4 +23,8 @@ Thumbs.db
 # Logs
 *.log
 
-.agent/
+# Agent/Copilot specific files
+.instructions.md
+.agent.md
+.prompt.md
+AGENTS.md
