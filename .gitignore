@@ -1,6 +1,7 @@
 # Maven
 /target/
 .m2/
+.mvn/
 
 # IDEs
 .idea/
@@ -28,3 +29,7 @@ Thumbs.db
 .agent.md
 .prompt.md
 AGENTS.md
+
+# Secret Files
+.env
+.env.*
